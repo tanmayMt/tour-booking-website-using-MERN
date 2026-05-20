@@ -29,10 +29,25 @@ if (!jwtSecret) {
   process.exit(1);
 }
 
+function normalizeOrigin(url) {
+  if (!url) return null;
+  return url.trim().replace(/\/$/, '');
+}
+
 const allowedOrigins = [
   process.env.CLIENT_URL,
   process.env.PRODUCTION_CLIENT_URL,
-].filter(Boolean);
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'https://tour-booking-website-using-mern.vercel.app',
+  ...(process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+    : []),
+]
+  .map(normalizeOrigin)
+  .filter(Boolean);
+
+const uniqueOrigins = [...new Set(allowedOrigins)];
 
 const cookieOptions = {
   httpOnly: true,
@@ -40,14 +55,29 @@ const cookieOptions = {
   sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
 };
 
+const corsOptions = {
+  credentials: true,
+  origin(origin, callback) {
+    if (!origin) {
+      return callback(null, true);
+    }
+    const normalized = normalizeOrigin(origin);
+    if (uniqueOrigins.includes(normalized)) {
+      return callback(null, origin);
+    }
+    console.warn('CORS blocked origin:', origin);
+    return callback(new Error(`Origin ${origin} not allowed by CORS`));
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
 app.use(express.json());
 app.use(cookieParser());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-app.use(cors({
-  credentials: true,
-  origin: allowedOrigins,
-}));
 
 mongoose.connect(process.env.MONGO_URL)
   .then(() => console.log('MongoDB connected successfully'))
@@ -404,27 +434,38 @@ app.post('/upload', photosMiddleware.array('photos', 100), async (req, res) => {
 
 app.post('/places', (req, res) => {
   const { token } = req.cookies;
+  if (!token) {
+    return res.status(401).json({ success: false, message: 'Login required' });
+  }
+
   const {
     title, address, addedPhotos, description, price,
     perks, extraInfo, checkIn, checkOut, maxGuests,
   } = req.body;
 
   jwt.verify(token, jwtSecret, {}, async (err, userData) => {
-    if (err) throw err;
-    const placeDoc = await Place.create({
-      owner: userData.id,
-      price,
-      title,
-      address,
-      photos: addedPhotos,
-      description,
-      perks,
-      extraInfo,
-      checkIn,
-      checkOut,
-      maxGuests,
-    });
-    res.json(withPhotoUrls(placeDoc));
+    if (err) {
+      return res.status(401).json({ success: false, message: 'Invalid or expired session' });
+    }
+    try {
+      const placeDoc = await Place.create({
+        owner: userData.id,
+        price,
+        title,
+        address,
+        photos: addedPhotos,
+        description,
+        perks,
+        extraInfo,
+        checkIn,
+        checkOut,
+        maxGuests,
+      });
+      res.json(withPhotoUrls(placeDoc));
+    } catch (e) {
+      console.error('Create place error:', e);
+      res.status(422).json({ success: false, message: 'Failed to save place' });
+    }
   });
 });
 
@@ -515,5 +556,5 @@ app.get('/bookings', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`API public URL: ${getApiPublicUrl()}`);
-  console.log(`CORS allowed origins: ${allowedOrigins.join(', ')}`);
+  console.log(`CORS allowed origins: ${uniqueOrigins.join(', ')}`);
 });
