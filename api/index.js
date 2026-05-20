@@ -10,10 +10,9 @@ const User = require('./models/User');
 const Place = require('./models/Place.js');
 const Booking = require('./models/Booking.js');
 const cookieParser = require('cookie-parser');
-const imageDownloader = require('image-downloader');
 const nodemailer = require('nodemailer');
 const multer = require('multer');
-const fs = require('fs');
+const cloudinaryService = require('./cloudinary');
 
 const app = express();
 
@@ -57,6 +56,10 @@ mongoose.connect(process.env.MONGO_URL)
     process.exit(1);
   });
 
+if (cloudinaryService.configure()) {
+  console.log('Cloudinary configured successfully');
+}
+
 function sanitizeUser(user) {
   if (!user) return null;
   const obj = user.toObject ? user.toObject() : { ...user };
@@ -91,6 +94,36 @@ function createMailTransporter() {
       pass: process.env.SENDER_GMAIL_PASSCODE,
     },
   });
+}
+
+function getApiPublicUrl() {
+  const url = process.env.API_PUBLIC_URL || process.env.RENDER_EXTERNAL_URL;
+  if (url) return url.replace(/\/$/, '');
+  return `http://localhost:${PORT}`;
+}
+
+function toAbsolutePhotoUrl(photo) {
+  if (!photo) return photo;
+  const value = String(photo);
+  if (value.startsWith('http://') || value.startsWith('https://')) {
+    return value;
+  }
+  const normalized = value.replace(/\\/g, '/').replace(/^\/+/, '');
+  const encodedPath = normalized.split('/').map(encodeURIComponent).join('/');
+  return `${getApiPublicUrl()}/uploads/${encodedPath}`;
+}
+
+function withPhotoUrls(place) {
+  if (!place) return place;
+  const doc = place.toObject ? place.toObject() : { ...place };
+  if (Array.isArray(doc.photos)) {
+    doc.photos = doc.photos.map(toAbsolutePhotoUrl);
+  }
+  return doc;
+}
+
+function withPhotoUrlsList(places) {
+  return places.map(withPhotoUrls);
 }
 
 app.get('/test', (req, res) => {
@@ -323,30 +356,50 @@ app.post('/logout', (req, res) => {
 
 app.post('/upload-by-link', async (req, res) => {
   const { link } = req.body;
-  const newName = 'photo' + Date.now() + '.jpg';
-  await imageDownloader.image({
-    url: link,
-    dest: path.join(__dirname, 'uploads', newName),
-  });
-  res.json(newName);
+  if (!link?.trim()) {
+    return res.status(400).json({ success: false, message: 'Image link is required' });
+  }
+  if (!cloudinaryService.isConfigured()) {
+    return res.status(503).json({
+      success: false,
+      message: 'Cloudinary is not configured on the server',
+    });
+  }
+  try {
+    const secureUrl = await cloudinaryService.uploadFromUrl(link.trim());
+    res.json(secureUrl);
+  } catch (e) {
+    console.error('Cloudinary upload-by-link error:', e);
+    res.status(422).json({ success: false, message: 'Failed to upload image from link' });
+  }
 });
 
 app.get('/account/bookings/cancel/:id', async (req, res) => {
   res.status(501).json({ message: 'Cancel booking not implemented yet' });
 });
 
-const photosMiddleware = multer({ dest: 'uploads' });
-app.post('/upload', photosMiddleware.array('photos', 100), (req, res) => {
-  const uploadedFiles = [];
-  for (let i = 0; i < req.files.length; i++) {
-    const { path: filePath, originalname } = req.files[i];
-    const parts = originalname.split('.');
-    const ext = parts[parts.length - 1];
-    const newPath = filePath + '.' + ext;
-    fs.renameSync(filePath, newPath);
-    uploadedFiles.push(path.basename(newPath));
+const photosMiddleware = multer({ storage: multer.memoryStorage() });
+app.post('/upload', photosMiddleware.array('photos', 100), async (req, res) => {
+  if (!cloudinaryService.isConfigured()) {
+    return res.status(503).json({
+      success: false,
+      message: 'Cloudinary is not configured on the server',
+    });
   }
-  res.json(uploadedFiles);
+  if (!req.files?.length) {
+    return res.status(400).json({ success: false, message: 'No photos uploaded' });
+  }
+  try {
+    const uploadedUrls = [];
+    for (const file of req.files) {
+      const secureUrl = await cloudinaryService.uploadFromBuffer(file.buffer);
+      uploadedUrls.push(secureUrl);
+    }
+    res.json(uploadedUrls);
+  } catch (e) {
+    console.error('Cloudinary upload error:', e);
+    res.status(422).json({ success: false, message: 'Failed to upload photos' });
+  }
 });
 
 app.post('/places', (req, res) => {
@@ -371,7 +424,7 @@ app.post('/places', (req, res) => {
       checkOut,
       maxGuests,
     });
-    res.json(placeDoc);
+    res.json(withPhotoUrls(placeDoc));
   });
 });
 
@@ -380,12 +433,14 @@ app.get('/user-places', (req, res) => {
   jwt.verify(token, jwtSecret, {}, async (err, userData) => {
     if (err) throw err;
     const { id } = userData;
-    res.json(await Place.find({ owner: id }));
+    const places = await Place.find({ owner: id });
+    res.json(withPhotoUrlsList(places));
   });
 });
 
 app.get('/places', async (req, res) => {
-  res.json(await Place.find());
+  const places = await Place.find();
+  res.json(withPhotoUrlsList(places));
 });
 
 app.get('/places/:id', async (req, res) => {
@@ -393,7 +448,7 @@ app.get('/places/:id', async (req, res) => {
   if (!place) {
     return res.status(404).json({ message: 'Place not found' });
   }
-  res.json(place);
+  res.json(withPhotoUrls(place));
 });
 
 app.put('/places', async (req, res) => {
@@ -448,10 +503,17 @@ app.post('/bookings', async (req, res) => {
 
 app.get('/bookings', async (req, res) => {
   const userData = await getUserDataFromReq(req);
-  res.json(await Booking.find({ user: userData.id }).populate('place'));
+  const bookings = await Booking.find({ user: userData.id }).populate('place');
+  const result = bookings.map((booking) => {
+    const doc = booking.toObject();
+    if (doc.place) doc.place = withPhotoUrls(doc.place);
+    return doc;
+  });
+  res.json(result);
 });
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`API public URL: ${getApiPublicUrl()}`);
   console.log(`CORS allowed origins: ${allowedOrigins.join(', ')}`);
 });
