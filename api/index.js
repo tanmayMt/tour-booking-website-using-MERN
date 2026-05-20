@@ -97,9 +97,24 @@ function sanitizeUser(user) {
   return obj;
 }
 
+function getTokenFromReq(req) {
+  if (req.cookies?.token) {
+    return req.cookies.token;
+  }
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    return authHeader.slice(7);
+  }
+  return null;
+}
+
 function getUserDataFromReq(req) {
   return new Promise((resolve, reject) => {
-    jwt.verify(req.cookies.token, jwtSecret, {}, (err, userData) => {
+    const token = getTokenFromReq(req);
+    if (!token) {
+      return reject(new Error('No token'));
+    }
+    jwt.verify(token, jwtSecret, {}, (err, userData) => {
       if (err) return reject(err);
       resolve(userData);
     });
@@ -252,6 +267,7 @@ app.post('/login', async (req, res) => {
         }
         res.cookie('token', token, cookieOptions).json({
           success: true,
+          token,
           userDoc: sanitizeUser(userDoc),
         });
       }
@@ -365,17 +381,14 @@ app.post('/reset-password', async (req, res) => {
   }
 });
 
-app.get('/profile', (req, res) => {
-  const { token } = req.cookies;
-  if (token) {
-    jwt.verify(token, jwtSecret, {}, async (err, userData) => {
-      if (err) return res.json(null);
-      const user = await User.findById(userData.id);
-      if (!user) return res.json(null);
-      const { name, userType, email, _id } = sanitizeUser(user);
-      res.json({ name, userType, email, _id });
-    });
-  } else {
+app.get('/profile', async (req, res) => {
+  try {
+    const userData = await getUserDataFromReq(req);
+    const user = await User.findById(userData.id);
+    if (!user) return res.json(null);
+    const { name, userType, email, _id } = sanitizeUser(user);
+    res.json({ name, userType, email, _id });
+  } catch {
     res.json(null);
   }
 });
@@ -432,8 +445,8 @@ app.post('/upload', photosMiddleware.array('photos', 100), async (req, res) => {
   }
 });
 
-app.post('/places', (req, res) => {
-  const { token } = req.cookies;
+app.post('/places', async (req, res) => {
+  const token = getTokenFromReq(req);
   if (!token) {
     return res.status(401).json({ success: false, message: 'Login required' });
   }
@@ -443,40 +456,36 @@ app.post('/places', (req, res) => {
     perks, extraInfo, checkIn, checkOut, maxGuests,
   } = req.body;
 
-  jwt.verify(token, jwtSecret, {}, async (err, userData) => {
-    if (err) {
-      return res.status(401).json({ success: false, message: 'Invalid or expired session' });
-    }
-    try {
-      const placeDoc = await Place.create({
-        owner: userData.id,
-        price,
-        title,
-        address,
-        photos: addedPhotos,
-        description,
-        perks,
-        extraInfo,
-        checkIn,
-        checkOut,
-        maxGuests,
-      });
-      res.json(withPhotoUrls(placeDoc));
-    } catch (e) {
-      console.error('Create place error:', e);
-      res.status(422).json({ success: false, message: 'Failed to save place' });
-    }
-  });
+  try {
+    const userData = await getUserDataFromReq(req);
+    const placeDoc = await Place.create({
+      owner: userData.id,
+      price,
+      title,
+      address,
+      photos: addedPhotos,
+      description,
+      perks,
+      extraInfo,
+      checkIn,
+      checkOut,
+      maxGuests,
+    });
+    res.json(withPhotoUrls(placeDoc));
+  } catch (e) {
+    console.error('Create place error:', e);
+    res.status(401).json({ success: false, message: 'Invalid or expired session' });
+  }
 });
 
-app.get('/user-places', (req, res) => {
-  const { token } = req.cookies;
-  jwt.verify(token, jwtSecret, {}, async (err, userData) => {
-    if (err) throw err;
-    const { id } = userData;
-    const places = await Place.find({ owner: id });
+app.get('/user-places', async (req, res) => {
+  try {
+    const userData = await getUserDataFromReq(req);
+    const places = await Place.find({ owner: userData.id });
     res.json(withPhotoUrlsList(places));
-  });
+  } catch (e) {
+    res.status(401).json({ success: false, message: 'Login required' });
+  }
 });
 
 app.get('/places', async (req, res) => {
@@ -493,32 +502,37 @@ app.get('/places/:id', async (req, res) => {
 });
 
 app.put('/places', async (req, res) => {
-  const { token } = req.cookies;
   const {
     id, title, address, addedPhotos, description,
     perks, extraInfo, checkIn, checkOut, maxGuests, price,
   } = req.body;
 
-  jwt.verify(token, jwtSecret, {}, async (err, userData) => {
-    if (err) throw err;
+  try {
+    const userData = await getUserDataFromReq(req);
     const placeDoc = await Place.findById(id);
-    if (userData.id === placeDoc.owner.toString()) {
-      placeDoc.set({
-        title,
-        address,
-        photos: addedPhotos,
-        description,
-        perks,
-        extraInfo,
-        checkIn,
-        checkOut,
-        maxGuests,
-        price,
-      });
-      await placeDoc.save();
-      res.json('ok');
+    if (!placeDoc) {
+      return res.status(404).json({ success: false, message: 'Place not found' });
     }
-  });
+    if (userData.id !== placeDoc.owner.toString()) {
+      return res.status(403).json({ success: false, message: 'Not allowed' });
+    }
+    placeDoc.set({
+      title,
+      address,
+      photos: addedPhotos,
+      description,
+      perks,
+      extraInfo,
+      checkIn,
+      checkOut,
+      maxGuests,
+      price,
+    });
+    await placeDoc.save();
+    res.json('ok');
+  } catch (e) {
+    res.status(401).json({ success: false, message: 'Login required' });
+  }
 });
 
 app.post('/bookings', async (req, res) => {

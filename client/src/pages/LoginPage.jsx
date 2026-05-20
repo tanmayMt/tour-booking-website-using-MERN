@@ -3,7 +3,8 @@
 import {Link, Navigate} from "react-router-dom";
 import {useContext, useState} from "react";
 import axios from "axios";
-import {UserContext} from "../UserContext.jsx";//../UserContext.jsx
+import { setAuthToken } from "../auth.js";
+import {UserContext} from "../UserContext.jsx";
 
 export default function LoginPage(){
     //We need to add some state for our input
@@ -18,6 +19,7 @@ export default function LoginPage(){
       try {
         const res = await axios.post('/login', { email, password });
         if (res.data.success) {
+          setAuthToken(res.data.token);
           setUser(res.data.userDoc);
           setRedirect(true);
         } else {
