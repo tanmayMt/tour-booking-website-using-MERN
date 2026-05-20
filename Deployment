@@ -1,0 +1,11 @@
+Frontend Deployment on vercel:
+PS G:\7.MERN_Projects\Tour-Booking-Project-using-MERN\client> vercel
+Vercel CLI 41.2.2
+🔍 Inspect: https://vercel.com/tanmay-samantas-projects/client/.............................[6s]
+✅ Production: https://client-14kb2pq2r-................................... [6s]
+📝 Deployed to production. Run `vercel --prod` to overwrite later (https://vercel.link/2F).
+💡 To change the domain or build command, go to https://vercel.com/tanmay-samantas-projects/.................
+PS G:\7.MERN_Projects\Tour-Booking-Project-using-MERN\client>
+
+Your frontend is successfully deployed on Vercel! 🎉
+✅ Production URL:

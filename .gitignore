@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+api/node_modules/
+client/node_modules/
+
+# Environment variables (never commit secrets)
+.env
+.env.local
+.env.*.local
+api/.env
+client/.env
+
+# Build output
+dist/
+dist-ssr/
+client/dist/
+
+# Uploads
+api/uploads/*
+!api/uploads/.gitkeep
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Deploy
+.vercel
+
+# Misc
+login
+*.local
