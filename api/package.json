@@ -16,6 +16,7 @@
     "nodemailer": "^6.10.0"
   },
   "scripts": {
+    "start": "node index.js",
     "server": "nodemon index.js"
   },
   "devDependencies": {
