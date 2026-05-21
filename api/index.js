@@ -5,7 +5,6 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const path = require('path');
 const User = require('./models/User');
 const Place = require('./models/Place.js');
 const Booking = require('./models/Booking.js');
@@ -77,7 +76,6 @@ app.options('*', cors(corsOptions));
 
 app.use(express.json());
 app.use(cookieParser());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 mongoose.connect(process.env.MONGO_URL)
   .then(() => console.log('MongoDB connected successfully'))
@@ -141,21 +139,13 @@ function createMailTransporter() {
   });
 }
 
-function getApiPublicUrl() {
-  const url = process.env.API_PUBLIC_URL || process.env.RENDER_EXTERNAL_URL;
-  if (url) return url.replace(/\/$/, '');
-  return `http://localhost:${PORT}`;
-}
-
 function toAbsolutePhotoUrl(photo) {
   if (!photo) return photo;
   const value = String(photo);
   if (value.startsWith('http://') || value.startsWith('https://')) {
     return value;
   }
-  const normalized = value.replace(/\\/g, '/').replace(/^\/+/, '');
-  const encodedPath = normalized.split('/').map(encodeURIComponent).join('/');
-  return `${getApiPublicUrl()}/uploads/${encodedPath}`;
+  return value;
 }
 
 function withPhotoUrls(place) {
@@ -569,6 +559,5 @@ app.get('/bookings', async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`API public URL: ${getApiPublicUrl()}`);
   console.log(`CORS allowed origins: ${uniqueOrigins.join(', ')}`);
 });

@@ -15,10 +15,6 @@ dist/
 dist-ssr/
 client/dist/
 
-# Uploads
-api/uploads/*
-!api/uploads/.gitkeep
-
 # Logs
 logs/
 *.log
