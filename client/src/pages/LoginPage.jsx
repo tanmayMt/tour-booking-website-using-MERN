@@ -3,7 +3,7 @@
 import {Link, Navigate} from "react-router-dom";
 import {useContext, useState} from "react";
 import axios from "axios";
-import { setAuthToken } from "../auth.js";
+import { setAuthToken, consumeRedirectAfterLogin } from "../auth.js";
 import {UserContext} from "../UserContext.jsx";
 
 export default function LoginPage(){
@@ -32,7 +32,8 @@ export default function LoginPage(){
     }
     //Re-direct to the home page
     if (redirect) {
-        return <Navigate to={'/'} />
+        const returnTo = consumeRedirectAfterLogin() || '/';
+        return <Navigate to={returnTo} replace />
     }
 
     

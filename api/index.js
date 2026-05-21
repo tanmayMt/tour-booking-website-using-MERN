@@ -547,36 +547,122 @@ app.put('/places', async (req, res) => {
   }
 });
 
+function calendarNights(checkIn, checkOut) {
+  const start = new Date(checkIn);
+  const end = new Date(checkOut);
+  start.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+  return Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+}
+
 app.post('/bookings', async (req, res) => {
-  const userData = await getUserDataFromReq(req);
-  const {
-    place, checkIn, checkOut, numberOfGuests, name, phone, price,
-  } = req.body;
-  Booking.create({
-    place,
-    checkIn,
-    checkOut,
-    numberOfGuests,
-    name,
-    phone,
-    price,
-    user: userData.id,
-  }).then((doc) => {
-    res.json(doc);
-  }).catch((err) => {
-    throw err;
-  });
+  try {
+    const userData = await getUserDataFromReq(req);
+    const {
+      place: placeId,
+      checkIn,
+      checkOut,
+      numberOfGuests,
+      name,
+      phone,
+    } = req.body;
+
+    if (!placeId || !checkIn || !checkOut) {
+      return res.status(400).json({
+        success: false,
+        message: 'Place, check-in, and check-out are required.',
+      });
+    }
+
+    if (!name?.trim() || !phone?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Guest name and phone number are required.',
+      });
+    }
+
+    const guests = Number(numberOfGuests);
+    if (!Number.isFinite(guests) || guests < 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'Number of guests must be at least 1.',
+      });
+    }
+
+    const checkInDate = new Date(checkIn);
+    const checkOutDate = new Date(checkOut);
+    if (Number.isNaN(checkInDate.getTime()) || Number.isNaN(checkOutDate.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid check-in or check-out date.',
+      });
+    }
+
+    const nights = calendarNights(checkInDate, checkOutDate);
+    if (nights <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Check-out must be after check-in.',
+      });
+    }
+
+    const placeDoc = await Place.findById(placeId);
+    if (!placeDoc) {
+      return res.status(404).json({ success: false, message: 'Place not found.' });
+    }
+
+    const maxGuests = placeDoc.maxGuests || 1;
+    if (guests > maxGuests) {
+      return res.status(400).json({
+        success: false,
+        message: `This place allows a maximum of ${maxGuests} guest(s).`,
+      });
+    }
+
+    const pricePerNight = placeDoc.price || 0;
+    const totalPrice = nights * pricePerNight;
+
+    const booking = await Booking.create({
+      place: placeId,
+      user: userData.id,
+      checkIn: checkInDate,
+      checkOut: checkOutDate,
+      numberOfGuests: guests,
+      name: name.trim(),
+      phone: phone.trim(),
+      price: totalPrice,
+      status: 'confirmed',
+    });
+
+    res.status(201).json(booking);
+  } catch (e) {
+    if (e.message === 'No token' || e.name === 'JsonWebTokenError' || e.name === 'TokenExpiredError') {
+      return res.status(401).json({ success: false, message: 'Login required to book.' });
+    }
+    console.error('POST /bookings error:', e);
+    res.status(500).json({ success: false, message: 'Could not create booking.' });
+  }
 });
 
 app.get('/bookings', async (req, res) => {
-  const userData = await getUserDataFromReq(req);
-  const bookings = await Booking.find({ user: userData.id }).populate('place');
-  const result = bookings.map((booking) => {
-    const doc = booking.toObject();
-    if (doc.place) doc.place = withPhotoUrls(doc.place);
-    return doc;
-  });
-  res.json(result);
+  try {
+    const userData = await getUserDataFromReq(req);
+    const bookings = await Booking.find({ user: userData.id })
+      .sort({ createdAt: -1 })
+      .populate('place');
+    const result = bookings.map((booking) => {
+      const doc = booking.toObject();
+      if (doc.place) doc.place = withPhotoUrls(doc.place);
+      return doc;
+    });
+    res.json(result);
+  } catch (e) {
+    if (e.message === 'No token' || e.name === 'JsonWebTokenError' || e.name === 'TokenExpiredError') {
+      return res.status(401).json({ success: false, message: 'Login required.' });
+    }
+    console.error('GET /bookings error:', e);
+    res.status(500).json({ success: false, message: 'Could not load bookings.' });
+  }
 });
 
 app.listen(PORT, () => {
