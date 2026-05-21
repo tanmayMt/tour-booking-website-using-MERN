@@ -3,9 +3,8 @@ import { useContext } from 'react';
 import { UserContext } from './UserContext';
 
 function isNavActive(href, pathname) {
-  if (href === '/account') {
-    return pathname === '/account';
-  }
+  if (href === '/account') return pathname === '/account';
+  if (href === '/account/places') return pathname === '/account/places';
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -18,12 +17,13 @@ function NavItem({ to, label, icon, pathname, onNavigate }) {
       className={[
         'flex items-center gap-3 rounded-xl px-3 py-3 text-[15px] transition-all duration-200',
         active
-          ? 'bg-[#f3f4f6] font-semibold text-[#111827] shadow-[0_1px_3px_rgba(15,23,42,0.06)]'
-          : 'font-medium text-[#4b5563] hover:bg-[#f9fafb]',
+          ? 'bg-[#f3f4f6] font-semibold text-[#111827] shadow-sm'
+          : 'font-medium text-[#4b5563] hover:bg-[#f9fafb] hover:text-[#111827]',
       ].join(' ')}
     >
       <span className={active ? 'text-[#ff385c]' : 'text-[#6b7280]'}>{icon}</span>
-      <span>{label}</span>
+      <span className="flex-1">{label}</span>
+      {active && <span className="h-2 w-2 shrink-0 rounded-full bg-[#ff385c]" aria-hidden />}
     </Link>
   );
 }
@@ -39,7 +39,7 @@ export default function AccountSidebar({ mobileOpen = false, onClose }) {
   };
 
   const nav = (
-    <nav className="space-y-1">
+    <nav className="space-y-1 px-2 py-2">
       <NavItem
         to="/account"
         label="My Profile"
@@ -109,26 +109,24 @@ export default function AccountSidebar({ mobileOpen = false, onClose }) {
         <button
           type="button"
           aria-label="Close menu"
-          className="fixed inset-0 z-40 bg-[#111827]/30 lg:hidden"
+          className="fixed inset-0 z-40 bg-[#111827]/30 backdrop-blur-[2px] lg:hidden"
           onClick={onClose}
         />
       )}
 
       <aside
         className={[
-          'fixed inset-y-0 left-0 z-50 w-[min(300px,88vw)] transform border-r border-[#e5e7eb] bg-white transition-transform duration-300 ease-out lg:static lg:z-auto lg:w-[240px] lg:shrink-0 lg:translate-x-0 lg:border-0 lg:bg-transparent',
+          'fixed inset-y-0 left-0 z-50 w-[min(300px,88vw)] transform border-r border-[#e5e7eb] bg-white transition-transform duration-300 ease-out lg:static lg:z-auto lg:w-[240px] lg:shrink-0 lg:translate-x-0 xl:w-[260px]',
           mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         ].join(' ')}
       >
-        <div className="flex h-full flex-col overflow-y-auto px-5 py-6 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:px-0 lg:py-0">
-          <div className="mb-6 flex items-center justify-between lg:mb-8">
-            <h1 className="text-[32px] font-semibold leading-tight tracking-tight text-[#111827]">
-              Profile
-            </h1>
+        <div className="flex h-full flex-col lg:sticky lg:top-24 lg:max-h-[calc(100vh-6rem)]">
+          <div className="flex items-center justify-between border-b border-[#e5e7eb] px-5 py-6 lg:border-0 lg:pb-2 lg:pt-0">
+            <h2 className="text-[26px] font-semibold tracking-tight text-[#111827]">Profile</h2>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full p-2 text-[#6b7280] hover:bg-[#f3f4f6] lg:hidden"
+              className="rounded-lg p-1 text-[#6b7280] hover:bg-[#f3f4f6] lg:hidden"
               aria-label="Close menu"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-6 w-6">
@@ -136,7 +134,7 @@ export default function AccountSidebar({ mobileOpen = false, onClose }) {
               </svg>
             </button>
           </div>
-          {nav}
+          <div className="flex-1 overflow-y-auto pb-6 lg:pt-2">{nav}</div>
         </div>
       </aside>
     </>

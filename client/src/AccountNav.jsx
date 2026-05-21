@@ -1,7 +1,5 @@
 /**
- * @deprecated Use AccountLayout + AccountSidebar for account pages.
- * Kept for any legacy imports; renders nothing.
+ * @deprecated Use AccountLayout + AccountSidebar for account navigation.
+ * Re-exported for backward compatibility if imported elsewhere.
  */
-export default function AccountNav() {
-  return null;
-}
+export { default } from './AccountSidebar.jsx';

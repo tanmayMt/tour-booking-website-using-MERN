@@ -27,8 +27,8 @@ function DetailRow({ icon, label, value }) {
         {icon}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-medium text-[#6b7280]">{label}</p>
-        <p className="mt-0.5 text-base font-semibold text-[#111827]">{value}</p>
+        <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">{label}</p>
+        <p className="mt-1 text-[15px] font-semibold text-[#111827]">{value}</p>
       </div>
     </div>
   );
@@ -51,22 +51,21 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-8">
-      {/* Profile header — Airbnb-style content panel */}
-      <section>
-        <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start sm:gap-6">
-          <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-[#111827] text-2xl font-semibold text-white">
+      {/* Profile header — Airbnb-style centered block */}
+      <section className="border-b border-[#e5e7eb] pb-8">
+        <div className="flex flex-col items-center text-center sm:flex-row sm:items-start sm:gap-6 sm:text-left">
+          <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#ff385c] to-[#e31c5f] text-2xl font-bold text-white shadow-md">
             {getInitials(user.name)}
           </div>
-          <div className="text-center sm:text-left">
-            <h2 className="text-[26px] font-semibold leading-tight text-[#111827] sm:text-[32px]">
-              {user.name}
-            </h2>
-            <p className="mt-1 text-base text-[#6b7280]">{user.email}</p>
+          <div className="mt-4 min-w-0 sm:mt-0">
+            <p className="text-sm font-medium text-[#6b7280]">Welcome back</p>
+            <h1 className="mt-1 text-[26px] font-semibold tracking-tight text-[#111827]">{user.name}</h1>
+            <p className="mt-1 text-[15px] text-[#6b7280]">{user.email}</p>
             <span
-              className={`mt-3 inline-flex rounded-md px-2.5 py-1 text-xs font-semibold ${
+              className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                 user.userType === 'Admin'
                   ? 'bg-[#111827] text-white'
-                  : 'border border-[#ff385c]/30 bg-[#ff385c]/5 text-[#ff385c]'
+                  : 'bg-[#ff385c]/10 text-[#ff385c]'
               }`}
             >
               {roleLabel(user.userType)}
@@ -75,16 +74,12 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      <hr className="border-[#e5e7eb]" />
+      {/* Account details */}
+      <section>
+        <h2 className="text-lg font-semibold text-[#111827]">Personal information</h2>
+        <p className="mt-1 text-[15px] text-[#6b7280]">Your account details on Tripify.</p>
 
-      {/* Account details card */}
-      <section className="rounded-[20px] border border-[#e5e7eb] bg-white p-6 shadow-[0_2px_16px_rgba(15,23,42,0.05)] sm:p-8">
-        <h3 className="text-xl font-semibold text-[#111827]">About me</h3>
-        <p className="mt-1 text-[15px] leading-relaxed text-[#6b7280]">
-          Your personal information for your Tripify account.
-        </p>
-
-        <div className="mt-6 flex flex-col gap-3">
+        <div className="mt-5 flex flex-col gap-3">
           <DetailRow
             label="Name"
             value={user.name}
@@ -118,9 +113,12 @@ export default function ProfilePage() {
           <button
             type="button"
             onClick={logout}
-            className="rounded-lg bg-[#ff385c] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#e31c5f]"
+            className="inline-flex items-center gap-2 rounded-lg bg-[#ff385c] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#e31c5f]"
           >
-            Log out
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-5 w-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+            </svg>
+            Logout
           </button>
         </div>
       </section>

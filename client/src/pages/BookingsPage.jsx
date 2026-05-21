@@ -14,26 +14,29 @@ export default function BookingsPage() {
   }, []);
 
   return (
-    <div className="space-y-8">
-      <header>
-        <h2 className="text-[26px] font-semibold leading-tight text-[#111827] sm:text-[32px]">
-          Bookings
-        </h2>
-        <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-[#6b7280]">
+    <div className="space-y-6">
+      <div className="border-b border-[#e5e7eb] pb-6">
+        <h1 className="text-[26px] font-semibold tracking-tight text-[#111827]">Bookings</h1>
+        <p className="mt-2 text-[15px] leading-relaxed text-[#6b7280]">
           View and manage your upcoming and past trips.
         </p>
-      </header>
+      </div>
 
       {bookings?.length === 0 ? (
-        <div className="flex flex-col items-center rounded-[20px] border border-[#e5e7eb] bg-white px-6 py-16 text-center shadow-[0_2px_16px_rgba(15,23,42,0.05)]">
-          <p className="max-w-md text-[15px] leading-relaxed text-[#6b7280]">
-            When you join a trip or book a stay, you&apos;ll find your bookings here.
+        <div className="mx-auto max-w-md py-8 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#ff385c]/10 text-[#ff385c]">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-8 w-8">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+            </svg>
+          </div>
+          <p className="mt-6 text-[15px] leading-relaxed text-[#6b7280]">
+            When you book a stay, it will appear here.
           </p>
           <Link
             to="/"
-            className="mt-6 rounded-lg bg-[#ff385c] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#e31c5f]"
+            className="mt-6 inline-flex rounded-lg bg-[#ff385c] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#e31c5f]"
           >
-            Book a trip
+            Explore stays
           </Link>
         </div>
       ) : (
@@ -47,12 +50,15 @@ export default function BookingsPage() {
                 <div className="h-48 w-full shrink-0 overflow-hidden bg-[#f3f4f6] sm:h-auto sm:w-44">
                   <PlaceImg place={booking.place} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
                 </div>
-                <div className="flex min-w-0 flex-1 flex-col justify-center p-5 sm:p-6">
-                  <h3 className="text-lg font-semibold text-[#111827]">{booking.place.title}</h3>
+                <div className="flex min-w-0 flex-1 flex-col justify-center p-5">
+                  <h2 className="text-lg font-bold text-[#111827]">{booking.place.title}</h2>
                   <BookingDates booking={booking} className="mb-1 mt-2 text-sm text-[#6b7280]" />
-                  <p className="mt-2 text-base font-semibold text-[#111827]">
-                    Total: ${booking.price}
-                  </p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-5 w-5 text-[#6b7280]">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+                    </svg>
+                    <span className="text-base font-semibold text-[#111827]">Total: ${booking.price}</span>
+                  </div>
                 </div>
               </Link>
             </li>
