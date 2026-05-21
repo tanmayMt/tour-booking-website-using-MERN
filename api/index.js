@@ -491,6 +491,28 @@ app.get('/places/:id', async (req, res) => {
   res.json(withPhotoUrls(place));
 });
 
+app.delete('/places/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const userData = await getUserDataFromReq(req);
+    const place = await Place.findById(id);
+
+    if (!place) {
+      return res.status(404).json({ success: false, message: 'Place not found' });
+    }
+    if (userData.id !== place.owner.toString()) {
+      return res.status(403).json({ success: false, message: 'Not allowed' });
+    }
+
+    await Place.findByIdAndDelete(id);
+    res.json({ success: true, message: 'Place deleted successfully' });
+  } catch (e) {
+    console.error('Delete place error:', e);
+    res.status(401).json({ success: false, message: 'Login required' });
+  }
+});
+
 app.put('/places', async (req, res) => {
   const {
     id, title, address, addedPhotos, description,
