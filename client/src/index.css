@@ -2,6 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+  body {
+    @apply min-h-screen bg-[#f8fafc] text-gray-900 antialiased;
+  }
+  #root {
+    @apply min-h-screen;
+  }
+}
+
 input[type="text"],input[type="password"],
 input[type="email"],input[type="number"],
 input[type="tel"],
@@ -14,9 +26,6 @@ textarea{
 }
 textarea{
     height: 140px;
-}
-button{
-    @apply bg-gray-300;
 }
 button.primary{
     background-color: #F5385D;/*copied the code from "client\tailwind.config.js"*/
