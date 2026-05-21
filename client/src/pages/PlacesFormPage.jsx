@@ -2,8 +2,7 @@ import PhotosUploader from "../PhotosUploader.jsx";
 import Perks from "../Perks.jsx";
 import {useEffect, useState} from "react";
 import axios from "axios";
-import AccountNav from "../AccountNav";
-import {Navigate, useParams} from "react-router-dom";
+import { Link, Navigate, useParams } from "react-router-dom";
 export default function PlacesFormPage(){
     const {id} = useParams(); //Let's use user id
     console.log(id);
@@ -91,8 +90,16 @@ export default function PlacesFormPage(){
 
 
     return(
-        <div>
-            <AccountNav />
+        <div className="mx-auto max-w-2xl">
+            <Link
+              to="/account/places"
+              className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-[#111827] transition-colors hover:text-[#ff385c]"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-5 w-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+              </svg>
+              Back to accommodations
+            </Link>
             <form onSubmit={savePlace}>   {/*<form onSubmit={savePlace}>*/}
               {preInput('Title', 'Title for your place. should be short and catchy as in advertisement')}
               <input type="text" value={title} onChange={ev => setTitle(ev.target.value)} placeholder="title, for example: My lovely apt"/>
